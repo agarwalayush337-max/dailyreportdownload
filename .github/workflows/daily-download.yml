@@ -1,12 +1,9 @@
 name: Daily Data Scraper
 
 on:
-  # Trigger 1: Run automatically every day
   schedule:
-    # This is UTC time. 02:30 UTC is 08:00 AM IST.
+    # Runs at 02:30 UTC (08:00 AM IST)
     - cron: '30 2 * * *'
-  
-  # Trigger 2: Allow you to click a button to run it manually (for testing)
   workflow_dispatch:
 
 permissions:
@@ -21,31 +18,23 @@ jobs:
 
       - name: 2. Download the file
         run: |
-          # Create a folder called 'data' if it doesn't exist
+          # Create data directory
           mkdir -p data
           
-          # Get current date (e.g., 2025-12-07)
+          # Get the current date
           TODAY=$(date +'%Y-%m-%d')
           
-          # Download the file using curl
-          # Replace the URL below with your target link
-          curl --http1.1 -L --retry 3 -o "data/report-$TODAY.csv" "https://www.cmegroup.com/delivery_reports/Silver_stocks.xls"
+          # Download with User-Agent spoofing and 60-second timeout
+          # Replace YOUR_URL_HERE with the actual link
+          curl -v -L --http1.1 --max-time 60 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "data/report-$TODAY.csv" "https://www.cmegroup.com/delivery_reports/Silver_stocks.xls"
           
-          # Optional: Also save a 'latest.csv' so you always know which one is newest
+          # Save a copy as 'latest.csv'
           cp "data/report-$TODAY.csv" data/latest.csv
 
       - name: 3. Commit and Push
         run: |
-          # Configure the bot's identity
           git config user.name "Automated Bot"
           git config user.email "actions@users.noreply.github.com"
-          
-          # Stage the files
           git add data/*
-          
-          # Commit the changes
-          # The "|| exit 0" part prevents errors if there is nothing new to commit
           git commit -m "Daily data fetch: $(date +'%Y-%m-%d')" || exit 0
-          
-          # Push back to the repository
           git push
