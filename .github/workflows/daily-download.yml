@@ -23,15 +23,15 @@ jobs:
           # Create data directory if it doesn't exist
           mkdir -p data
           
-          # Get current date in DD MM YYYY format (e.g., 07 12 2025)
-          TODAY=$(date +'%d %m %Y')
+          # Get current date in DD-MM-YY format (e.g., 07-12-25)
+          TODAY=$(date +'%d-%m-%y')
           
           # Download the file
-          # We use quotes around the filename because it contains spaces
-          curl -v -L --http1.1 --max-time 60 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "data/Silver stock report ($TODAY).xls" "https://www.cmegroup.com/delivery_reports/Silver_stocks.xls"
+          # Filename will be like: "Silver Stock Report 07-12-25.xls"
+          curl -v -L --http1.1 --max-time 60 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "data/Silver Stock Report $TODAY.xls" "https://www.cmegroup.com/delivery_reports/Silver_stocks.xls"
           
           # Save a copy as 'latest.xls' so you always have the newest file easy to access
-          cp "data/Silver stock report ($TODAY).xls" data/latest.xls
+          cp "data/Silver Stock Report $TODAY.xls" data/latest.xls
 
       - name: 3. Commit and Push
         run: |
@@ -42,7 +42,7 @@ jobs:
           git add data/*
           
           # Commit with a timestamp message
-          git commit -m "Daily data fetch: $(date +'%d %m %Y')" || exit 0
+          git commit -m "Daily data fetch: $(date +'%d-%m-%y')" || exit 0
           
           # Push changes to the repository
           git push
