@@ -29,7 +29,7 @@ jobs:
           
           # Download the file using curl
           # Replace the URL below with your target link
-          curl -o "data/report-$TODAY.csv" "https://www.cmegroup.com/delivery_reports/Silver_stocks.xls"
+          curl --http1.1 -L --retry 3 -o "data/report-$TODAY.csv" "https://www.cmegroup.com/delivery_reports/Silver_stocks.xls"
           
           # Optional: Also save a 'latest.csv' so you always know which one is newest
           cp "data/report-$TODAY.csv" data/latest.csv
