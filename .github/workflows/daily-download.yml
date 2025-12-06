@@ -2,8 +2,10 @@ name: Daily Data Scraper
 
 on:
   schedule:
-    # Runs at 02:30 UTC (08:00 AM IST)
+    # Runs at 02:30 UTC, which is 08:00 AM IST
     - cron: '30 2 * * *'
+  
+  # Allows you to run it manually from the "Actions" tab for testing
   workflow_dispatch:
 
 permissions:
@@ -18,23 +20,29 @@ jobs:
 
       - name: 2. Download the file
         run: |
-          # Create data directory
+          # Create data directory if it doesn't exist
           mkdir -p data
           
-          # Get the current date
-          TODAY=$(date +'%Y-%m-%d')
+          # Get current date in DD MM YYYY format (e.g., 07 12 2025)
+          TODAY=$(date +'%d %m %Y')
           
-          # Download with User-Agent spoofing and 60-second timeout
-          # Replace YOUR_URL_HERE with the actual link
-          curl -v -L --http1.1 --max-time 60 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "data/report-$TODAY.csv" "https://www.cmegroup.com/delivery_reports/Silver_stocks.xls"
+          # Download the file
+          # We use quotes around the filename because it contains spaces
+          curl -v -L --http1.1 --max-time 60 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "data/Silver stock report ($TODAY).xls" "https://www.cmegroup.com/delivery_reports/Silver_stocks.xls"
           
-          # Save a copy as 'latest.csv'
-          cp "data/report-$TODAY.csv" data/latest.csv
+          # Save a copy as 'latest.xls' so you always have the newest file easy to access
+          cp "data/Silver stock report ($TODAY).xls" data/latest.xls
 
       - name: 3. Commit and Push
         run: |
           git config user.name "Automated Bot"
           git config user.email "actions@users.noreply.github.com"
+          
+          # Add all files in the data folder
           git add data/*
-          git commit -m "Daily data fetch: $(date +'%Y-%m-%d')" || exit 0
+          
+          # Commit with a timestamp message
+          git commit -m "Daily data fetch: $(date +'%d %m %Y')" || exit 0
+          
+          # Push changes to the repository
           git push
