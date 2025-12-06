@@ -2,10 +2,13 @@ name: Daily Data Scraper
 
 on:
   schedule:
-    # Runs at 02:30 UTC, which is 08:00 AM IST
+    # Run 1: 02:30 UTC = 08:00 AM IST (India Standard Time)
     - cron: '30 2 * * *'
+    
+    # Run 2: 08:30 UTC = 02:00 PM IST (Backup run in case morning fails)
+    - cron: '30 8 * * *'
   
-  # Allows you to run it manually from the "Actions" tab for testing
+  # Allows you to run it manually from the "Actions" tab for immediate testing
   workflow_dispatch:
 
 permissions:
@@ -27,10 +30,12 @@ jobs:
           TODAY=$(date +'%d-%m-%y')
           
           # Download the file
-          # Filename will be like: "Silver Stock Report 07-12-25.xls"
-          curl -v -L --http1.1 --max-time 60 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "data/Silver Stock Report $TODAY.xls" "https://www.cmegroup.com/delivery_reports/Silver_stocks.xls"
+          # --retry 5: Tries 5 times if connection drops
+          # --max-time 60: Stops if it hangs for more than a minute
+          # -A "...": Pretends to be Chrome to avoid blocking
+          curl -v -L --http1.1 --retry 5 --max-time 60 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "data/Silver Stock Report $TODAY.xls" "https://www.cmegroup.com/delivery_reports/Silver_stocks.xls"
           
-          # Save a copy as 'latest.xls' so you always have the newest file easy to access
+          # Save a copy as 'latest.xls' for easy access
           cp "data/Silver Stock Report $TODAY.xls" data/latest.xls
 
       - name: 3. Commit and Push
@@ -42,6 +47,7 @@ jobs:
           git add data/*
           
           # Commit with a timestamp message
+          # "|| exit 0" ensures the script doesn't 'fail' if the file hasn't changed since the morning run
           git commit -m "Daily data fetch: $(date +'%d-%m-%y')" || exit 0
           
           # Push changes to the repository
