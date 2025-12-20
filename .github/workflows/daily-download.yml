@@ -2,12 +2,10 @@ name: Daily Data Scraper
 
 on:
   schedule:
-    # Run 1: 01:15 UTC = 06:45 AM IST (India Standard Time)
-    # This is an "off-peak" time, so it should run much closer to the schedule.
-    - cron: '15 1 * * *'
+    # Run 1: 00:30 UTC = 06:00 AM IST (India Standard Time)
+    - cron: '30 0 * * *'
     
     # Run 2: 08:30 UTC = 02:00 PM IST (Backup run)
-    # This ensures if the morning run fails, we try again in the afternoon.
     - cron: '30 8 * * *'
   
   # Allows you to click "Run workflow" manually for testing
