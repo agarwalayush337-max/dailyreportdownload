@@ -8,7 +8,6 @@ on:
     # Run 2: 08:30 UTC = 02:00 PM IST (Backup run)
     - cron: '30 8 * * *'
   
-  # Allows you to click "Run workflow" manually for testing
   workflow_dispatch:
 
 permissions:
@@ -21,35 +20,39 @@ jobs:
       - name: 1. Checkout the code
         uses: actions/checkout@v3
 
-      - name: 2. Download the file
+      - name: 2. Install Conversion Tools
         run: |
-          # Create data directory if it doesn't exist
+          # Install pandas and xlrd (required to read old .xls files)
+          pip install pandas xlrd
+
+      - name: 3. Download and Convert
+        run: |
           mkdir -p data
-          
-          # Get current date in DD-MM-YY format (e.g., 07-12-25)
           TODAY=$(date +'%d-%m-%y')
           
-          # Download the file
-          # --retry 5: Tries 5 times if connection drops
-          # --max-time 60: Stops if it hangs for more than a minute
-          # --http1.1: Forces older protocol to prevent "stream" errors
-          # -A "...": Pretends to be Chrome to avoid blocking
-          curl -v -L --http1.1 --retry 5 --max-time 60 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "data/Silver Stock Report $TODAY.xls" "https://www.cmegroup.com/delivery_reports/Silver_stocks.xls"
+          # 1. Download the Excel file to a temporary name
+          curl -v -L --http1.1 --retry 5 --max-time 60 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "data/temp.xls" "https://www.cmegroup.com/delivery_reports/Silver_stocks.xls"
           
-          # Save a copy as 'latest.xls' so you always have the newest file easy to access
-          cp "data/Silver Stock Report $TODAY.xls" data/latest.xls
+          # 2. Convert temp.xls -> YourName.csv
+          # index=False removes the row numbers (0, 1, 2...) from the CSV
+          python -c "import pandas as pd; df = pd.read_excel('data/temp.xls'); df.to_csv('data/Silver Stock Report $TODAY.csv', index=False)"
+          
+          # 3. Create the 'latest.csv' copy
+          cp "data/Silver Stock Report $TODAY.csv" data/latest.csv
+          
+          # 4. CLEANUP: Delete the temporary download AND the old latest.xls
+          rm data/temp.xls
+          rm -f data/latest.xls  # The '-f' means "don't complain if it's already gone"
 
-      - name: 3. Commit and Push
+      - name: 4. Commit and Push
         run: |
           git config user.name "Automated Bot"
           git config user.email "actions@users.noreply.github.com"
           
-          # Add all files in the data folder
+          # Add the new CSVs and record the deletion of the old XLS
           git add data/*
+          git add -u  # This stages the deletion of latest.xls if it happened
           
-          # Commit with a timestamp message
-          # "|| exit 0" ensures the script doesn't 'fail' if the file hasn't changed since the morning run
           git commit -m "Daily data fetch: $(date +'%d-%m-%y')" || exit 0
           
-          # Push changes to the repository
           git push
